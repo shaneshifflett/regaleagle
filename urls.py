@@ -7,6 +7,7 @@ from django.conf import settings
 
 urlpatterns = patterns('',
      url(r'^$', 'regalness.views.index', name='home'),
+     url(r'^order/$', 'regalness.views.order', name='order'),
     # url(r'^regalness/', include('regalness.foo.urls')),
 
     # Uncomment the admin/doc line below to enable admin documentation:
