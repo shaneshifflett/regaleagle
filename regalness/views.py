@@ -5,13 +5,15 @@ from django.template import RequestContext
 from django.shortcuts import get_object_or_404, render_to_response
 import stripe
 
-
+#pull me from DB options
 ORDER_OPTIONS = ['bulk', 'sub']
+COST_PER_COOKIE = 1.99
 
 def index(request, template_name='regalness/index.html'):
     context = {}
     context['bulk'] = ORDER_OPTIONS[0]
     context['sub'] = ORDER_OPTIONS[1]
+    context['COST_PER_COOKIE'] = COST_PER_COOKIE
     if settings.DEBUG:
         context['key'] = settings.TEST_STRIPE_PUB_KEY
         context['card'] = settings.TEST_CARD_NUM
@@ -26,6 +28,7 @@ def order_submit(request, option, quantity, token, template_name='regalness/than
     context = {}
     if option not in ORDER_OPTIONS:
         template_name = 'regalness/error_missing_opt.html'
+        return render_to_response(template_name, context, context_instance=RequestContext(request))
     stripe.api_key = settings.TEST_STRIPE_SECRET_KEY
     # create the charge on Stripe's servers - this will charge the user's card
     charge = stripe.Charge.create(
