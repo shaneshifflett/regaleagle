@@ -5,7 +5,7 @@ from django.template import RequestContext
 from django.shortcuts import get_object_or_404, render_to_response
 import stripe
 
-#pull me from DB options
+#TODO: pull me from DB options
 ORDER_OPTIONS = ['bulk', 'sub']
 COST_PER_COOKIE = 1.99
 
