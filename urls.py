@@ -8,7 +8,7 @@ from django.conf import settings
 urlpatterns = patterns('',
      url(r'^$', 'regalness.views.index', name='home'),
      url(r'^order/$', 'regalness.views.order', name='order'),
-    # url(r'^regalness/', include('regalness.foo.urls')),
+     url(r'^s/(?P<token>[\w-]+)/$', 'regalness.views.order_submit', name='order_submit'),
 
     # Uncomment the admin/doc line below to enable admin documentation:
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
