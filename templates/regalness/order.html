@@ -1,5 +1,13 @@
 <div id='info'>
     <span class="payment-errors"></span>
+    <div id='options-form'>
+        <input type="radio" name="option" value="bulk">One time order</br>
+        <input type="radio" name="option" value="sub">Subscribe
+    </div>
+    <div id="quantity-form">
+        <span id='quantity-directions'></span>
+        <input type="text" size="2" class=""/>
+    </div>
    <form action="" id="payment-form">
         <div class="form-row">
             <label>Card Number</label>
@@ -22,6 +30,27 @@
 </div>
 <script type="text/javascript">
     $(function(){
+        $("#payment-form").hide();
+        $("#quantity-form").hide();
+        option = '';
+        quantity = 0;
+        $("#options-form :radio").change(function() {
+             option = $('#options-form input[type=radio]:checked').val();
+             var dirtxt = '';
+             if(option == "bulk"){
+                dirtxt = "Enter the number of cookies you'd like";
+             }else{
+                dirtxt = "Each subscription counts for 20 cookies every week, enter the number of subscriptions you'd like";
+             }
+             $("#options-form").hide();
+             $("#quantity-directions").html(dirtxt);
+             $("#quantity-form").show();
+        });
+        $("#quantity-form input").change(function() {
+            quantity = $("#quantity-form input").val();
+            $("#quantity-form").hide();
+            $("#payment-form").show();
+        });
         function stripeResponseHandler(status, response) {
             if (response.error) {
                 $(".payment-errors").html(response.error.message);
@@ -37,6 +66,8 @@
         }
         Stripe.setPublishableKey('{{key}}');
         $("#payment-form").submit(function(event) {
+            console.log(option);
+            console.log(quantity);
             // disable the submit button to prevent repeated clicks
             $('.submit-button').attr("disabled", "disabled");
 
