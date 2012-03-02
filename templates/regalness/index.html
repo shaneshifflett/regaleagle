@@ -6,6 +6,8 @@
             margin-left: auto;
             margin-right: auto }
     </style>
+    <script type="text/javascript" src="https://js.stripe.com/v1/"></script>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
     <script type="text/javascript">
       var _gaq = _gaq || [];
       _gaq.push(['_setAccount', 'UA-29514704-1']);
@@ -20,5 +22,6 @@
 </head>
 <body>
     <img class='logo' src="{{MEDIA_URL}}/home/regaleagle.png"/>
+    {% include 'regalness/order.html' %}
 </body>
 </html>

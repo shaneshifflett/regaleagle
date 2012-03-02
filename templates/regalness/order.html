@@ -1,82 +1,53 @@
-<html>
-<head>
-    <style type="text/css">
-        IMG.logo {
-            display: block;
-            margin-left: auto;
-            margin-right: auto }
-    </style>
-    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-    <script type="text/javascript" src="https://js.stripe.com/v1/"></script>
-    <script type="text/javascript">
+<div id='info'>
+    <span class="payment-errors"></span>
+   <form action="" id="payment-form">
+        <div class="form-row">
+            <label>Card Number</label>
+            <input type="text" size="20" autocomplete="off" class="card-number"
+            {%if card%} value="{{card}}"{%endif%}
+            />
+        </div>
+        <div class="form-row">
+            <label>CVC</label>
+            <input type="text" size="4" autocomplete="off" class="card-cvc"/>
+        </div>
+        <div class="form-row">
+            <label>Expiration (MM/YYYY)</label>
+            <input type="text" size="2" class="card-expiry-month"/>
+            <span> / </span>
+            <input type="text" size="4" class="card-expiry-year"/>
+        </div>
+        <button type="submit" class="submit-button">Submit Payment</button>
+    </form>
+</div>
+<script type="text/javascript">
+    $(function(){
         function stripeResponseHandler(status, response) {
             if (response.error) {
                 $(".payment-errors").html(response.error.message);
             } else {
                 var form$ = $("#payment-form");
-                // token contains id, last4, and card type
                 var token = response['id'];
-                alert('submission')
-                // insert the token into the form so it gets submitted to the server
                 $.get('/s/'+token, function(data){
                     $("#info").empty();
                     $("#info").append(data);
                 });
             }
+            return false;
         }
-        // this identifies your website in the createToken call below
-        $(document).ready(function() {
-            Stripe.setPublishableKey('{{key}}');
-            $("#payment-form").submit(function(event) {
-                // disable the submit button to prevent repeated clicks
-                $('.submit-button').attr("disabled", "disabled");
+        Stripe.setPublishableKey('{{key}}');
+        $("#payment-form").submit(function(event) {
+            // disable the submit button to prevent repeated clicks
+            $('.submit-button').attr("disabled", "disabled");
 
-                Stripe.createToken({
-                    number: $('.card-number').val(),
-                    cvc: $('.card-cvc').val(),
-                    exp_month: $('.card-expiry-month').val(),
-                    exp_year: $('.card-expiry-year').val()
-                }, stripeResponseHandler);
-
-                // prevent the form from submitting with the default action
-                return false;
-            });
+            Stripe.createToken({
+                number: $('.card-number').val(),
+                cvc: $('.card-cvc').val(),
+                exp_month: $('.card-expiry-month').val(),
+                exp_year: $('.card-expiry-year').val()
+            }, stripeResponseHandler);
+            // prevent the form from submitting with the default action
+            return false;
         });
-        </script>
-    <script type="text/javascript">
-      var _gaq = _gaq || [];
-      _gaq.push(['_setAccount', 'UA-29514704-1']);
-      _gaq.push(['_trackPageview']);
-
-      (function() {
-        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-      })();
-    </script>
-</head>
-<body>
-    <div id='info'>
-        <span class="payment-errors"></span>
-       <form action="" method="POST" id="payment-form">
-            <div class="form-row">
-                <label>Card Number</label>
-                <input type="text" size="20" autocomplete="off" class="card-number"
-                    {%if card%} value="{{card}}"{%endif%}
-                />
-            </div>
-            <div class="form-row">
-                <label>CVC</label>
-                <input type="text" size="4" autocomplete="off" class="card-cvc"/>
-            </div>
-            <div class="form-row">
-                <label>Expiration (MM/YYYY)</label>
-                <input type="text" size="2" class="card-expiry-month"/>
-                <span> / </span>
-                <input type="text" size="4" class="card-expiry-year"/>
-            </div>
-            <button type="submit" class="submit-button">Submit Payment</button>
-        </form>
-    </div>
-</body>
-</html>
+    });
+</script>
