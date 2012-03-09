@@ -1,5 +1,5 @@
 <div id='info'>
-    <span class="payment-errors"></span>
+    <span class="errors" id="error-msg"></span>
     <div id='options-form'>
         <input type="radio" name="option" value="{{bulk}}">One time order</br>
         <input type="radio" name="option" value="{{sub}}">Subscribe
@@ -7,6 +7,9 @@
     <div id="quantity-form">
         <span id='quantity-directions'></span>
         <input type="text" size="2" class=""/>
+    </div>
+    <div id="registration">
+
     </div>
    <form action="" id="payment-form">
         <div class="form-row">
@@ -32,9 +35,34 @@
     $(function(){
         $("#payment-form").hide();
         $("#quantity-form").hide();
+        $("#registration").hide();
         option = '';
         quantity = 0;
         COST_PER_COOKIE = {{COST_PER_COOKIE}};
+        username = '';
+        function handleUserSubmission(){
+            $.ajax({
+                type: "post",
+                url : "/register/",
+                  data: { 
+                  'username': $("#id_username").val(),
+                  'password1': $("#id_password1").val(),
+                  'password2': $("#id_password2").val(),
+                },
+                success : function(data){
+                    username = data.username;
+                    $("#registration").hide();
+                    $("#payment-form").show();
+                    return false;
+                },
+                error: function(requestError, status, errorResponse){
+                    var response = requestError.responseText;
+                    $("#error-msg").html(response);
+                    return false;
+                }
+            });
+            return false;
+        }
         $("#options-form :radio").change(function() {
              option = $('#options-form input[type=radio]:checked').val();
              var dirtxt = '';
@@ -50,11 +78,16 @@
         $("#quantity-form input").change(function() {
             quantity = $("#quantity-form input").val();
             $("#quantity-form").hide();
-            $("#payment-form").show();
+            $("#payment-form").hide();
+            $.get('/register/', function(data){
+                $("#registration").append(data);
+                $('#registration-form').unbind('submit', handleUserSubmission).bind('submit', handleUserSubmission);
+                $("#registration").show();
+            });
         });
         function stripeResponseHandler(status, response) {
             if (response.error) {
-                $(".payment-errors").html(response.error.message);
+                $(".errors").html(response.error.message);
             } else {
                 var form$ = $("#payment-form");
                 var token = response['id'];
@@ -79,5 +112,43 @@
             // prevent the form from submitting with the default action
             return false;
         });
+
+        jQuery(document).ajaxSend(function(event, xhr, settings) {
+            function getCookie(name) {
+                var cookieValue = null;
+                if (document.cookie && document.cookie != '') {
+                    var cookies = document.cookie.split(';');
+                    for (var i = 0; i < cookies.length; i++) {
+                        var cookie = jQuery.trim(cookies[i]);
+                        // Does this cookie string begin with the name we want?
+                        if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+            function sameOrigin(url) {
+                // url could be relative or scheme relative or absolute
+                var host = document.location.host; // host + port
+                var protocol = document.location.protocol;
+                var sr_origin = '//' + host;
+                var origin = protocol + sr_origin;
+                // Allow absolute or scheme relative URLs to same origin
+                return (url == origin || url.slice(0, origin.length + 1) == origin + '/') ||
+                    (url == sr_origin || url.slice(0, sr_origin.length + 1) == sr_origin + '/') ||
+                    // or any other URL that isn't scheme relative or absolute i.e relative.
+                    !(/^(\/\/|http:|https:).*/.test(url));
+            }
+            function safeMethod(method) {
+                return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+            }
+
+            if (!safeMethod(settings.type) && sameOrigin(settings.url)) {
+                xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+            }
+        });
+
     });
 </script>

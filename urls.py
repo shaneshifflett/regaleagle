@@ -5,6 +5,8 @@ from django.conf import settings
 
 urlpatterns = patterns('',
      url(r'^$', 'regalness.views.index', name='home'),
+     url(r'^experimental/$', 'regalness.views.experimental', name='experimental'),
+     url(r'^register/$', 'regalness.views.register', name='register'),
      url(r'^s/(?P<option>[\w-]+)/(?P<quantity>\d+)/(?P<token>[\w-]+)/$', 'regalness.views.order_submit', name='order_submit'),
     # Uncomment the next line to enable the admin:
     # url(r'^admin/', include(admin.site.urls)),
