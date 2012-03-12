@@ -2,15 +2,23 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.conf import settings
 from django.template import RequestContext, Context
 from django.shortcuts import get_object_or_404, render_to_response
-from django.contrib.auth.forms import UserCreationForm
-from django import forms
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.models import User
+from regalness.forms import *
+from regalness.models import *
 import simplejson as json
 import stripe
 
 #TODO: pull me from DB options
-ORDER_OPTIONS = ['bulk', 'sub']
-COST_PER_COOKIE = 1.99
 PROCESSING_ERROR_TEMPLATE = 'regalness/processing-error.html'
+
+def fix_error_msg(errors):
+    ret_val = []
+    for key in errors.keys():
+        val = errors[key][0]
+        new_val = val.replace('This field', key)
+        ret_val.append(new_val)
+    return ret_val
 
 def experimental(request, template_name='regalness/caat.html'):
    context = {} 
@@ -18,12 +26,77 @@ def experimental(request, template_name='regalness/caat.html'):
 
 def index(request, template_name='regalness/index.html'):
     context = {}
-    context['bulk'] = ORDER_OPTIONS[0]
-    context['sub'] = ORDER_OPTIONS[1]
+    user, created = User.objects.get_or_create(username='anon')
+    customer, created = Customer.objects.get_or_create(user=user)
+    request.session['customer'] = customer
+    context['bulk'] = ORDER_OPTIONS[0][1]
+    context['sub'] = ORDER_OPTIONS[1][1]
     context['COST_PER_COOKIE'] = COST_PER_COOKIE
     if settings.DEBUG:
         context['key'] = settings.TEST_STRIPE_PUB_KEY
         context['card'] = settings.TEST_CARD_NUM
+    return render_to_response(template_name, context, context_instance=RequestContext(request))
+
+def contact(request, template_name='regalness/contact-form.html'):
+    context = {}
+    if request.method == 'POST':
+        form = ContactForm(request.POST)
+        if form.is_valid():
+            obj = form.save()
+            customer = request.session['customer']
+            customer.add_contact(obj)
+            request.session['contact'] = obj
+            vals = ''
+            return HttpResponse(json.dumps(vals), mimetype='application/json', status=200)
+        else:
+            errors = fix_error_msg(form.errors)
+            err_msg = '  '.join(errors)
+            return HttpResponse(err_msg, mimetype='application/json', status=400)
+    else:
+        customer = request.session['customer']
+        def_contact = customer.get_default_contact()
+        if customer.user.username != 'anon' and def_contact != None:
+            form = ContactForm(instance=def_contact)
+        else:
+            form = ContactForm()
+        context['form'] = form
+    return render_to_response(template_name, context, context_instance=RequestContext(request))
+
+def order_details(request, template_name='regalness/order-details-form.html'):
+    context = {}
+    if request.method == 'POST':
+        form = AddressForm(request.POST)
+        if form.is_valid():
+            obj = form.save()
+            request.session[''] = obj
+            vals = ''
+            return HttpResponse(json.dumps(vals), mimetype='application/json', status=200)
+        else:
+            errors = fix_error_msg(form.errors)
+            err_msg = '  '.join(errors)
+            return HttpResponse(err_msg, mimetype='application/json', status=400)
+    else:
+        form = AddressForm()
+        context['form'] = form
+    return render_to_response(template_name, context, context_instance=RequestContext(request))
+
+def login(request, template_name='regalness/login-form.html'):
+    context = {}
+    if request.method == 'POST':
+        form = AuthenticationForm(None, request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            customer, created = Customer.objects.get_or_create(user=user)
+            request.session['customer'] = customer
+            vals = {'username': user.username}
+            return HttpResponse(json.dumps(vals), mimetype='application/json', status=200)
+        else:
+            errors = fix_error_msg(form.errors)
+            err_msg = '  '.join(errors)
+            return HttpResponse(err_msg, mimetype='application/json', status=400)
+    else:
+        form = AuthenticationForm()
+        context['form'] = form
     return render_to_response(template_name, context, context_instance=RequestContext(request))
 
 def register(request, template_name='regalness/registration-form.html'):
@@ -35,18 +108,18 @@ def register(request, template_name='regalness/registration-form.html'):
         form = UserCreationForm(vals)
         if form.is_valid():
             new_user = form.save()
+            customer, created = Customer.objects.get_or_create(user=new_user)
+            request.session['customer'] = customer
             vals = {'username':new_user.username}
             return HttpResponse(json.dumps(vals), mimetype='application/json', status=200)
         else:
-            err_msg = ''
-            for item in form.errors.values():
-                err_msg += ''.join(item)
-            return HttpResponse(json.dumps(err_msg), mimetype='application/json', status=400)
+            errors = fix_error_msg(form.errors)
+            err_msg = '  '.join(errors)
+            return HttpResponse(err_msg, mimetype='application/json', status=400)
     else:
         form = UserCreationForm()
         context['form'] = form
     return render_to_response(template_name, context, context_instance=RequestContext(request))
-
 
 def order(request, template_name='regalness/order.html'):
     context = {}
@@ -78,6 +151,7 @@ def charge_customer(cust_id):
 
 def order_submit(request, option, quantity, token, template_name='regalness/thanks.html'):
     context = {}
+    print request.session['customer']
     if option not in ORDER_OPTIONS:
         template_name = 'regalness/error_missing_opt.html'
         return render_to_response(template_name, context, context_instance=RequestContext(request))
@@ -86,5 +160,4 @@ def order_submit(request, option, quantity, token, template_name='regalness/than
     cust_id = customer_check('RMME', token)
     if not charge_customer(cust_id):
         template_name = PROCESSING_ERROR_TEMPLATE
-        print template_name
     return render_to_response(template_name, context, context_instance=RequestContext(request))

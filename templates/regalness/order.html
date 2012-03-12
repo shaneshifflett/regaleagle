@@ -8,7 +8,19 @@
         <span id='quantity-directions'></span>
         <input type="text" size="2" class=""/>
     </div>
-    <div id="registration">
+    <div id="authentication">
+        <div id="login">
+
+        </div>
+        OR <a href="#" id="create-act">create an account</a>
+        <div id="registration">
+
+        </div>
+    </div>
+    <div id='deets'>
+
+    </div>
+    <div id="contact">
 
     </div>
    <form action="" id="payment-form">
@@ -36,24 +48,112 @@
         $("#payment-form").hide();
         $("#quantity-form").hide();
         $("#registration").hide();
+        $("#authentication").hide();
+        $("#deets").hide();
+        $("#contact").hide();
+        $('#create-act').unbind('click', showRegister).bind('click', showRegister);
+
         option = '';
         quantity = 0;
         COST_PER_COOKIE = {{COST_PER_COOKIE}};
         username = '';
+        function loadOrderDetails(){
+            $("#authentication").empty();
+            $.get('/deets/', function(data){
+                $("#deets").append(data);
+                $('#order-details-form').unbind('submit', handleDeetsSubmission).bind('submit', handleDeetsSubmission);
+                $("#deets").show();
+            });
+            return false;
+        }
+        function showRegister(e){
+            $("#registration").show();
+            return false;
+        }
+        function handleLoginSubmission(){
+            $("#registration").hide();
+            $.ajax({
+                type: "post",
+                url : "/login/",
+                  data: { 
+                    'username': $("#authentication #id_username").val(),
+                    'password': $("#authentication #id_password").val(),
+                },
+                success : function(data){
+                    console.log('login success')
+                    username = data.username;
+                    loadOrderDetails();
+                    return false;
+                },
+                error: function(requestError, status, errorResponse){
+                    var response = requestError.responseText;
+                    $("#error-msg").html(response);
+                    return false;
+                }
+            });
+            return false;
+        }
+        function handleDeetsSubmission(){
+            $.ajax({
+                type: "post",
+                url : "/deets/",
+                  data: {
+                    'street_address':$("#id_street_address").val(),
+                    'city': $("#id_city").val(),
+                    'state': $("#id_state").val(),
+                    'zip': $("#id_zip").val(),
+                },
+                success : function(data){
+                    $("#deets").empty();
+                    $.get('/contact/', function(data){
+                        $("#contact").append(data);
+                        $('#contact-form').unbind('submit', handleContactSubmission).bind('submit', handleContactSubmission);
+                        $("#contact").show();
+                    });
+                    return false;
+                },
+                error: function(requestError, status, errorResponse){
+                    var response = requestError.responseText;
+                    $("#error-msg").html(response);
+                    return false;
+                }
+            });
+            return false;
+        }
+        function handleContactSubmission(){
+            $.ajax({
+                type: "post",
+                url : "/contact/",
+                  data: {
+                    'email': $("#id_email").val(),
+                    'phone_number': $("#id_phone_number").val()
+                },
+                success : function(data){
+                    $("#contact").empty();
+                    $("#payment-form").show();
+                    return false;
+                },
+                error: function(requestError, status, errorResponse){
+                    var response = requestError.responseText;
+                    $("#error-msg").html(response);
+                    return false;
+                }
+            });
+            return false;
+        }
         function handleUserSubmission(){
+            $("#registration").hide();
             $.ajax({
                 type: "post",
                 url : "/register/",
                   data: { 
-                  'username': $("#id_username").val(),
-                  'password1': $("#id_password1").val(),
-                  'password2': $("#id_password2").val(),
+                  'username': $("#registration #id_username").val(),
+                  'password1': $("#registration #id_password1").val(),
+                  'password2': $("#registration #id_password2").val(),
                 },
                 success : function(data){
                     username = data.username;
-                    $("#registration").hide();
-                    $("#payment-form").show();
-                    return false;
+                    loadOrderDetails();
                 },
                 error: function(requestError, status, errorResponse){
                     var response = requestError.responseText;
@@ -79,15 +179,29 @@
             quantity = $("#quantity-form input").val();
             $("#quantity-form").hide();
             $("#payment-form").hide();
-            $.get('/register/', function(data){
-                $("#registration").append(data);
-                $('#registration-form').unbind('submit', handleUserSubmission).bind('submit', handleUserSubmission);
-                $("#registration").show();
-            });
+            if(option != "{{bulk}}"){
+                $.get('/login/', function(data){
+                    $("#login").append(data);
+                    $('#login-form').unbind('submit', handleLoginSubmission).bind('submit', handleLoginSubmission);
+                    $("#authentication").show();
+                });
+                $.get('/register/', function(data){
+                    $("#registration").append(data);
+                    $('#registration-form').unbind('submit', handleUserSubmission).bind('submit', handleUserSubmission);
+                    //$("#registration").show();
+                });
+            }else{
+                $.get('/deets/', function(data){
+                    $("#deets").append(data);
+                    $('#order-details-form').unbind('submit', handleDeetsSubmission).bind('submit', handleDeetsSubmission);
+                    $("#deets").show();
+                });
+            }
         });
         function stripeResponseHandler(status, response) {
             if (response.error) {
                 $(".errors").html(response.error.message);
+                $('#payment-form :input[type="submit"]').removeAttr('disabled');
             } else {
                 var form$ = $("#payment-form");
                 var token = response['id'];
@@ -99,6 +213,7 @@
             return false;
         }
         Stripe.setPublishableKey('{{key}}');
+        $(".errors").html('');
         $("#payment-form").submit(function(event) {
             // disable the submit button to prevent repeated clicks
             $('.submit-button').attr("disabled", "disabled");
@@ -148,6 +263,8 @@
             if (!safeMethod(settings.type) && sameOrigin(settings.url)) {
                 xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
             }
+            $("#error-msg").html('');
+
         });
 
     });
