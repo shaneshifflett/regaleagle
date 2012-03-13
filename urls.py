@@ -10,6 +10,7 @@ urlpatterns = patterns('',
      url(r'^login/$', 'regalness.views.login', name='login'),
      url(r'^deets/$', 'regalness.views.order_details', name='order_details'),
      url(r'^contact/$', 'regalness.views.contact', name='contact'),
+     url(r'^review/$', 'regalness.views.review', name='review'),
      url(r'^s/(?P<option>[\w-]+)/(?P<quantity>\d+)/(?P<token>[\w-]+)/$', 'regalness.views.order_submit', name='order_submit'),
     # Uncomment the next line to enable the admin:
     # url(r'^admin/', include(admin.site.urls)),

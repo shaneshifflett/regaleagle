@@ -72,11 +72,12 @@ class Address(models.Model):
     is_default = models.BooleanField(default=False)
 
 class Contact(models.Model):
+    first_name = models.CharField(max_length=255)
+    last_name = models.CharField(max_length=255)
     email = models.EmailField(max_length=255)    
     phone_number = PhoneNumberField(max_length=12)
     is_default = models.BooleanField(default=False)
     created_date = models.DateTimeField(auto_now=True) 
-
 
 class Order(models.Model):
     order_type = models.CharField(max_length=10, choices=ORDER_OPTIONS)

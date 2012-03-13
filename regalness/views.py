@@ -4,6 +4,7 @@ from django.template import RequestContext, Context
 from django.shortcuts import get_object_or_404, render_to_response
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
+from django.forms.models import model_to_dict
 from regalness.forms import *
 from regalness.models import *
 import simplejson as json
@@ -11,7 +12,10 @@ import stripe
 
 #TODO: pull me from DB options
 PROCESSING_ERROR_TEMPLATE = 'regalness/processing-error.html'
-CUST_KEY = 'customer'
+CUST_KEY = 'customer'    
+ADDR_FORM_KEY = 'addr'
+CONTACT_FORM_KEY = 'contact'
+
 
 def fix_error_msg(errors):
     ret_val = []
@@ -40,14 +44,13 @@ def index(request, template_name='regalness/index.html'):
 
 def contact(request, template_name='regalness/contact-form.html'):
     context = {}
-    form_key = 'contact'
     if request.method == 'POST':
         form = ContactForm(request.POST)
         if form.is_valid():
             obj = form.save()
             customer = request.session[CUST_KEY]
             customer.add_contact(obj)
-            request.session[form_key] = obj
+            request.session[CONTACT_FORM_KEY] = obj
             vals = ''
             return HttpResponse(json.dumps(vals), mimetype='application/json', status=200)
         else:
@@ -55,25 +58,29 @@ def contact(request, template_name='regalness/contact-form.html'):
             err_msg = '  '.join(errors)
             return HttpResponse(err_msg, mimetype='application/json', status=400)
     else:
-        customer = request.session[CUST_KEY]
-        def_contact = customer.get_default_contact()
-        if customer.user.username != 'anon' and def_contact != None:
-            form = ContactForm(instance=def_contact)
+        form = None
+        if request.session[CONTACT_FORM_KEY] != None:
+            obj = request.session[CONTACT_FORM_KEY]
+            form = ContactForm(instance=obj)
         else:
-            form = ContactForm()
+            customer = request.session[CUST_KEY]
+            def_contact = customer.get_default_contact()
+            if customer.user.username != 'anon' and def_contact != None:
+                form = ContactForm(instance=def_contact)
+            else:
+                form = ContactForm()
         context['form'] = form
     return render_to_response(template_name, context, context_instance=RequestContext(request))
 
 def order_details(request, template_name='regalness/order-details-form.html'):
     context = {}
-    form_key = 'addr'
     if request.method == 'POST':
         form = AddressForm(request.POST)
         if form.is_valid():
             obj = form.save()
             customer = request.session[CUST_KEY]
             customer.add_address(obj)
-            request.session[form_key] = obj
+            request.session[ADDR_FORM_KEY] = obj
             vals = ''
             return HttpResponse(json.dumps(vals), mimetype='application/json', status=200)
         else:
@@ -81,13 +88,18 @@ def order_details(request, template_name='regalness/order-details-form.html'):
             err_msg = '  '.join(errors)
             return HttpResponse(err_msg, mimetype='application/json', status=400)
     else:
-        customer = request.session[CUST_KEY]
-        addr = customer.get_default_address()
         form = None
-        if customer.user.username != 'anon' and addr != None:
-            form = AddressForm(instance=addr)
+        if request.session[ADDR_FORM_KEY] != None:
+            obj = request.session[ADDR_FORM_KEY]
+            form = AddressForm(instance=obj)
         else:
-            form = AddressForm()
+            customer = request.session[CUST_KEY]
+            addr = customer.get_default_address()
+            form = None
+            if customer.user.username != 'anon' and addr != None:
+                form = AddressForm(instance=addr)
+            else:
+                form = AddressForm()
         context['form'] = form
     return render_to_response(template_name, context, context_instance=RequestContext(request))
 
@@ -134,6 +146,20 @@ def register(request, template_name='regalness/registration-form.html'):
 
 def order(request, template_name='regalness/order.html'):
     context = {}
+    return render_to_response(template_name, context, context_instance=RequestContext(request))
+
+def review(request, template_name='regalness/review-order.html'):
+    context = {}
+    addr = request.session[ADDR_FORM_KEY]
+    contact = request.session[CONTACT_FORM_KEY]
+    context['fname'] = contact.first_name
+    context['lname'] = contact.last_name
+    context['email'] = contact.email
+    context['phone'] = contact.phone_number
+    context['street_address'] = addr.street_address
+    context['city'] = addr.city
+    context['state'] = addr.state
+    context['zip'] = addr.zip
     return render_to_response(template_name, context, context_instance=RequestContext(request))
 
 def customer_check(user, token):

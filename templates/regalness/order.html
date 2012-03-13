@@ -17,10 +17,13 @@
 
         </div>
     </div>
+    <div id="contact">
+
+    </div>
     <div id='deets'>
 
     </div>
-    <div id="contact">
+    <div id="review">
 
     </div>
    <form action="" id="payment-form">
@@ -51,20 +54,37 @@
         $("#authentication").hide();
         $("#deets").hide();
         $("#contact").hide();
+        $("#review").hide();
         $('#create-act').unbind('click', showRegister).bind('click', showRegister);
 
         option = '';
         quantity = 0;
         COST_PER_COOKIE = {{COST_PER_COOKIE}};
         username = '';
+        function changeContact(){
+            $("#review").empty();
+            $("#payment-form").hide();
+            loadContactDetails();
+        }
+        function changeAddr(){
+            $("#review").empty();
+            $("#payment-form").hide();
+            loadOrderDetails();
+        }
         function loadOrderDetails(){
-            $("#authentication").empty();
             $.get('/deets/', function(data){
                 $("#deets").append(data);
                 $('#order-details-form').unbind('submit', handleDeetsSubmission).bind('submit', handleDeetsSubmission);
                 $("#deets").show();
             });
             return false;
+        }
+        function loadContactDetails(){
+            $.get('/contact/', function(data){
+                $("#contact").append(data);
+                $('#contact-form').unbind('submit', handleContactSubmission).bind('submit', handleContactSubmission);
+                $("#contact").show();
+            });
         }
         function showRegister(e){
             $("#registration").show();
@@ -82,7 +102,8 @@
                 success : function(data){
                     console.log('login success')
                     username = data.username;
-                    loadOrderDetails();
+                    $("#authentication").empty();
+                    loadContactDetails();
                     return false;
                 },
                 error: function(requestError, status, errorResponse){
@@ -105,11 +126,14 @@
                 },
                 success : function(data){
                     $("#deets").empty();
-                    $.get('/contact/', function(data){
-                        $("#contact").append(data);
-                        $('#contact-form').unbind('submit', handleContactSubmission).bind('submit', handleContactSubmission);
-                        $("#contact").show();
+                    $.get('/review', function(data){
+                        $("#review").append(data);
+                        $("#review").show();
+                        $('.change-contact-link').unbind('click', changeContact).bind('click', changeContact);
+                        $('.change-addr-link').unbind('click', changeAddr).bind('click', changeAddr);
+
                     });
+                    $("#payment-form").show();
                     return false;
                 },
                 error: function(requestError, status, errorResponse){
@@ -125,12 +149,14 @@
                 type: "post",
                 url : "/contact/",
                   data: {
+                    'first_name': $("#id_first_name").val(),
+                    'last_name': $("#id_last_name").val(),
                     'email': $("#id_email").val(),
                     'phone_number': $("#id_phone_number").val()
                 },
                 success : function(data){
                     $("#contact").empty();
-                    $("#payment-form").show();
+                    loadOrderDetails();
                     return false;
                 },
                 error: function(requestError, status, errorResponse){
@@ -153,7 +179,8 @@
                 },
                 success : function(data){
                     username = data.username;
-                    loadOrderDetails();
+                    $("#authentication").empty();
+                    loadContactDetails();
                 },
                 error: function(requestError, status, errorResponse){
                     var response = requestError.responseText;
@@ -191,11 +218,7 @@
                     //$("#registration").show();
                 });
             }else{
-                $.get('/deets/', function(data){
-                    $("#deets").append(data);
-                    $('#order-details-form').unbind('submit', handleDeetsSubmission).bind('submit', handleDeetsSubmission);
-                    $("#deets").show();
-                });
+                loadContactDetails();
             }
         });
         function stripeResponseHandler(status, response) {
