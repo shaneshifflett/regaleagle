@@ -40,8 +40,8 @@ class Customer(models.Model):
             return None
 
     def set_default_address(self, address):
-        if address.is_default:
-            addresses = self.addresses.objects.filter(is_default=True)
+        if not address.is_default:
+            addresses = self.addresses.filter(is_default=True)
             for addr in addresses:
                 addr.is_default = False
                 addr.save()
@@ -52,8 +52,8 @@ class Customer(models.Model):
             self.save()
 
     def set_default_contact(self, contact):
-        if contact.is_default:
-            contacts = self.contacts.objects.filter(is_default=True)
+        if not contact.is_default:
+            contacts = self.contacts.filter(is_default=True)
             for c in contacts:
                 c.is_default = False
                 c.save()
@@ -75,6 +75,8 @@ class Contact(models.Model):
     email = models.EmailField(max_length=255)    
     phone_number = PhoneNumberField(max_length=12)
     is_default = models.BooleanField(default=False)
+    created_date = models.DateTimeField(auto_now=True) 
+
 
 class Order(models.Model):
     order_type = models.CharField(max_length=10, choices=ORDER_OPTIONS)

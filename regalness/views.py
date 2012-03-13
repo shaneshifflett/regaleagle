@@ -11,6 +11,7 @@ import stripe
 
 #TODO: pull me from DB options
 PROCESSING_ERROR_TEMPLATE = 'regalness/processing-error.html'
+CUST_KEY = 'customer'
 
 def fix_error_msg(errors):
     ret_val = []
@@ -28,7 +29,7 @@ def index(request, template_name='regalness/index.html'):
     context = {}
     user, created = User.objects.get_or_create(username='anon')
     customer, created = Customer.objects.get_or_create(user=user)
-    request.session['customer'] = customer
+    request.session[CUST_KEY] = customer
     context['bulk'] = ORDER_OPTIONS[0][1]
     context['sub'] = ORDER_OPTIONS[1][1]
     context['COST_PER_COOKIE'] = COST_PER_COOKIE
@@ -39,13 +40,14 @@ def index(request, template_name='regalness/index.html'):
 
 def contact(request, template_name='regalness/contact-form.html'):
     context = {}
+    form_key = 'contact'
     if request.method == 'POST':
         form = ContactForm(request.POST)
         if form.is_valid():
             obj = form.save()
-            customer = request.session['customer']
+            customer = request.session[CUST_KEY]
             customer.add_contact(obj)
-            request.session['contact'] = obj
+            request.session[form_key] = obj
             vals = ''
             return HttpResponse(json.dumps(vals), mimetype='application/json', status=200)
         else:
@@ -53,7 +55,7 @@ def contact(request, template_name='regalness/contact-form.html'):
             err_msg = '  '.join(errors)
             return HttpResponse(err_msg, mimetype='application/json', status=400)
     else:
-        customer = request.session['customer']
+        customer = request.session[CUST_KEY]
         def_contact = customer.get_default_contact()
         if customer.user.username != 'anon' and def_contact != None:
             form = ContactForm(instance=def_contact)
@@ -64,11 +66,14 @@ def contact(request, template_name='regalness/contact-form.html'):
 
 def order_details(request, template_name='regalness/order-details-form.html'):
     context = {}
+    form_key = 'addr'
     if request.method == 'POST':
         form = AddressForm(request.POST)
         if form.is_valid():
             obj = form.save()
-            request.session[''] = obj
+            customer = request.session[CUST_KEY]
+            customer.add_address(obj)
+            request.session[form_key] = obj
             vals = ''
             return HttpResponse(json.dumps(vals), mimetype='application/json', status=200)
         else:
@@ -76,7 +81,13 @@ def order_details(request, template_name='regalness/order-details-form.html'):
             err_msg = '  '.join(errors)
             return HttpResponse(err_msg, mimetype='application/json', status=400)
     else:
-        form = AddressForm()
+        customer = request.session[CUST_KEY]
+        addr = customer.get_default_address()
+        form = None
+        if customer.user.username != 'anon' and addr != None:
+            form = AddressForm(instance=addr)
+        else:
+            form = AddressForm()
         context['form'] = form
     return render_to_response(template_name, context, context_instance=RequestContext(request))
 
@@ -87,7 +98,7 @@ def login(request, template_name='regalness/login-form.html'):
         if form.is_valid():
             user = form.get_user()
             customer, created = Customer.objects.get_or_create(user=user)
-            request.session['customer'] = customer
+            request.session[CUST_KEY] = customer
             vals = {'username': user.username}
             return HttpResponse(json.dumps(vals), mimetype='application/json', status=200)
         else:
@@ -109,7 +120,7 @@ def register(request, template_name='regalness/registration-form.html'):
         if form.is_valid():
             new_user = form.save()
             customer, created = Customer.objects.get_or_create(user=new_user)
-            request.session['customer'] = customer
+            request.session[CUST_KEY] = customer
             vals = {'username':new_user.username}
             return HttpResponse(json.dumps(vals), mimetype='application/json', status=200)
         else:
