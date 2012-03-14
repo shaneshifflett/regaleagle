@@ -40,7 +40,7 @@ class Customer(models.Model):
             return None
 
     def set_default_address(self, address):
-        if not address.is_default:
+        if address.is_default:
             addresses = self.addresses.filter(is_default=True)
             for addr in addresses:
                 addr.is_default = False
@@ -52,7 +52,7 @@ class Customer(models.Model):
             self.save()
 
     def set_default_contact(self, contact):
-        if not contact.is_default:
+        if contact.is_default:
             contacts = self.contacts.filter(is_default=True)
             for c in contacts:
                 c.is_default = False

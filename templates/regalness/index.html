@@ -7,13 +7,19 @@
             margin-right: auto }
         body {
           width: 700px ;
+          height: 1500px;
           margin-left: auto ;
           margin-right: auto ;
           text-align: center;
         }
+        table{
+          margin-left: auto;
+          margin-right: auto;
+        }
     </style>
     <script type="text/javascript" src="https://js.stripe.com/v1/"></script>
-    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script type="text/javascript" src="{{MEDIA_URL}}/js/jquery-1.7.1.min.js"></script>
+    <script type="text/javascript" src="{{MEDIA_URL}}/js/jquery-ui-1.8.18.custom.min.js"></script>
     <script type="text/javascript">
       var _gaq = _gaq || [];
       _gaq.push(['_setAccount', 'UA-29514704-1']);
@@ -24,13 +30,17 @@
         ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
         var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
       })();
-
+      var slideTime = 250;
+      function showForm(obj, time){
+          obj.show("slide", {direction: "right"}, time);
+      }
       $(document).ready(function(){
 
       });
     </script>
 </head>
 <body>
+    <div id='signedin'></div>
     <img class='logo' src="{{MEDIA_URL}}/home/regaleagle.png"/>
     {% include 'regalness/order.html' %}
 </body>

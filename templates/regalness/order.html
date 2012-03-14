@@ -2,11 +2,13 @@
     <span class="errors" id="error-msg"></span>
     <div id='options-form'>
         <input type="radio" name="option" value="{{bulk}}">One time order</br>
-        <input type="radio" name="option" value="{{sub}}">Subscribe
+        <input type="radio" name="option" value="{{sub}}">Subscribe</br>
+        <a href="#" class="nextbtn">Next</a>
     </div>
     <div id="quantity-form">
         <span id='quantity-directions'></span>
-        <input type="text" size="2" class=""/>
+        <input type="text" size="2" class=""/></br>
+        <a href="#" class="nextbtn">Next</a>
     </div>
     <div id="authentication">
         <div id="login">
@@ -56,26 +58,33 @@
         $("#contact").hide();
         $("#review").hide();
         $('#create-act').unbind('click', showRegister).bind('click', showRegister);
+        $('#options-form .nextbtn').unbind('click', optionNext).bind('click', optionNext);
+        $('#quantity-form .nextbtn').unbind('click', quantityNext).bind('click', quantityNext);
 
         option = '';
         quantity = 0;
         COST_PER_COOKIE = {{COST_PER_COOKIE}};
         username = '';
         function changeContact(){
-            $("#review").empty();
-            $("#payment-form").hide();
+            $("#review").hide("slide", {direction: "left"}, slideTime);
+            setTimeout("$('#review').empty()", slideTime)
+            $("#payment-form").hide("slide", {direction: "left"}, slideTime);
             loadContactDetails();
+            return false;
         }
         function changeAddr(){
-            $("#review").empty();
-            $("#payment-form").hide();
+            $("#review").hide("slide", {direction: "left"}, slideTime);
+            setTimeout("$('#review').empty()", slideTime)
+            $("#payment-form").hide("slide", {direction: "left"}, slideTime);
             loadOrderDetails();
+            return false;
         }
         function loadOrderDetails(){
             $.get('/deets/', function(data){
                 $("#deets").append(data);
                 $('#order-details-form').unbind('submit', handleDeetsSubmission).bind('submit', handleDeetsSubmission);
-                $("#deets").show();
+                setTimeout("showForm($('#deets'), slideTime)", slideTime);
+                //$("#deets").show("slide", {direction: "right"}, 500);
             });
             return false;
         }
@@ -83,15 +92,17 @@
             $.get('/contact/', function(data){
                 $("#contact").append(data);
                 $('#contact-form').unbind('submit', handleContactSubmission).bind('submit', handleContactSubmission);
-                $("#contact").show();
+                setTimeout("showForm($('#contact'), slideTime)", slideTime);
+                //$("#contact").show("slide", {direction: "right"}, 500);
             });
+            return false;
         }
         function showRegister(e){
-            $("#registration").show();
+            setTimeout("showForm($('#registration'), slideTime)", slideTime);
+            //$("#registration").show("slide", {direction: "right"}, 500);
             return false;
         }
         function handleLoginSubmission(){
-            $("#registration").hide();
             $.ajax({
                 type: "post",
                 url : "/login/",
@@ -100,9 +111,10 @@
                     'password': $("#authentication #id_password").val(),
                 },
                 success : function(data){
-                    console.log('login success')
                     username = data.username;
-                    $("#authentication").empty();
+                    $("#signedin").html('Hey '+username);
+                    $("#authentication").hide("slide", {direction: "left"}, slideTime);
+                    setTimeout("$('#authentication').empty()", slideTime)
                     loadContactDetails();
                     return false;
                 },
@@ -123,17 +135,20 @@
                     'city': $("#id_city").val(),
                     'state': $("#id_state").val(),
                     'zip': $("#id_zip").val(),
+                    'is_default': $("#id_is_default").is(":checked")
                 },
                 success : function(data){
-                    $("#deets").empty();
+                    $("#deets").hide("slide", {direction: "left"}, slideTime);
+                    setTimeout("$('#deets').empty()", slideTime)
                     $.get('/review', function(data){
                         $("#review").append(data);
-                        $("#review").show();
+                        setTimeout("showForm($('#review'), slideTime)", slideTime);
                         $('.change-contact-link').unbind('click', changeContact).bind('click', changeContact);
                         $('.change-addr-link').unbind('click', changeAddr).bind('click', changeAddr);
 
                     });
-                    $("#payment-form").show();
+                    setTimeout("showForm($('#payment-form'), slideTime)", slideTime);
+                    //$("#payment-form").show("slide", {direction: "right"}, 500);
                     return false;
                 },
                 error: function(requestError, status, errorResponse){
@@ -152,10 +167,12 @@
                     'first_name': $("#id_first_name").val(),
                     'last_name': $("#id_last_name").val(),
                     'email': $("#id_email").val(),
-                    'phone_number': $("#id_phone_number").val()
+                    'phone_number': $("#id_phone_number").val(),
+                    'is_default': $("#id_is_default").is(":checked")
                 },
                 success : function(data){
-                    $("#contact").empty();
+                    $("#contact").hide("slide", {direction: "left"}, slideTime);
+                    setTimeout("$('#contact').empty()", slideTime)
                     loadOrderDetails();
                     return false;
                 },
@@ -168,7 +185,7 @@
             return false;
         }
         function handleUserSubmission(){
-            $("#registration").hide();
+            //$("#registration").hide("slide", {direction: "left"}, slideTime);
             $.ajax({
                 type: "post",
                 url : "/register/",
@@ -179,7 +196,8 @@
                 },
                 success : function(data){
                     username = data.username;
-                    $("#authentication").empty();
+                    $("#authentication").hide("slide", {direction: "left"}, slideTime);
+                    setTimeout("$('#authentication').empty()", slideTime)
                     loadContactDetails();
                 },
                 error: function(requestError, status, errorResponse){
@@ -190,36 +208,45 @@
             });
             return false;
         }
-        $("#options-form :radio").change(function() {
-             option = $('#options-form input[type=radio]:checked').val();
-             var dirtxt = '';
-             if(option == "{{bulk}}"){
-                dirtxt = "Enter the number of cookies you'd like";
-             }else{
-                dirtxt = "Each subscription counts for 20 cookies every week, enter the number of subscriptions you'd like";
-             }
-             $("#options-form").hide();
-             $("#quantity-directions").html(dirtxt);
-             $("#quantity-form").show();
-        });
-        $("#quantity-form input").change(function() {
-            quantity = $("#quantity-form input").val();
-            $("#quantity-form").hide();
-            $("#payment-form").hide();
+
+        function optionNext(){
+            var dirtxt = '';
+            if(option == "{{bulk}}"){
+               dirtxt = "Enter the number of cookies you'd like";
+            }else{
+               dirtxt = "Each subscription counts for 20 cookies every week, enter the number of subscriptions you'd like";
+            }
+            $("#options-form").hide("slide", {direction: "left"}, slideTime);
+            setTimeout("showForm($('#quantity-form'), slideTime)", slideTime);
+            $("#quantity-directions").html(dirtxt);
+            return false;
+        }
+        function quantityNext(){
+            $("#quantity-form").hide("slide", {direction: "left"}, slideTime);
             if(option != "{{bulk}}"){
                 $.get('/login/', function(data){
                     $("#login").append(data);
                     $('#login-form').unbind('submit', handleLoginSubmission).bind('submit', handleLoginSubmission);
-                    $("#authentication").show();
+                    setTimeout("showForm($('#authentication'), slideTime)", slideTime);
                 });
                 $.get('/register/', function(data){
                     $("#registration").append(data);
                     $('#registration-form').unbind('submit', handleUserSubmission).bind('submit', handleUserSubmission);
-                    //$("#registration").show();
+                    $("#registration").hide();
                 });
             }else{
                 loadContactDetails();
             }
+            return false;
+        }
+        $("#options-form :radio").change(function() {
+             option = $('#options-form input[type=radio]:checked').val();
+
+             return false;
+        });
+        $("#quantity-form input").change(function() {
+            quantity = $("#quantity-form input").val();
+            return false;
         });
         function stripeResponseHandler(status, response) {
             if (response.error) {
