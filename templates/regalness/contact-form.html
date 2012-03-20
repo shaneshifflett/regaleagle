@@ -1,5 +1,28 @@
-  <form id='contact-form'>
+<form id='contact-form'>
     {% csrf_token %}
-    {{ form.as_table }}
+    <table>
+        <tr>
+            <td><label for="id_first_name">First name:</label></td>
+            <td>{{form.first_name}}</td>
+        </tr>
+        <tr>
+            <td><label for="id_last_name">Last name:</label></td>
+            <td>{{form.last_name}}</td>
+        </tr>
+        <tr>
+            <td><label for="id_email">Email:</label></td>
+            <td>{{form.email}}</td>
+        </tr>
+        <tr>
+            <td><label for="id_phone_number">Phone number:</label></td>
+            <td>{{form.phone_number}}</td>
+        </tr>
+        {% comment %}
+        <tr>
+            <td><label for="id_is_default">Is default:</label></td>
+            <td>{{form.is_default}}</td>
+        </tr>
+        {% endcomment %}
+    </table>
     <input type="submit" value="Next" />
-  </label>
+</form>

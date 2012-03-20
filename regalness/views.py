@@ -45,6 +45,9 @@ def index(request, template_name='regalness/index.html'):
         if settings.DEBUG:
             context['key'] = settings.TEST_STRIPE_PUB_KEY
             context['card'] = settings.TEST_CARD_NUM
+        else:
+            context['key'] = settings.STRIPE_PUB_KEY
+            context['card'] = settings.CARD_NUM
     except Exception as e:
         logging.error("regalness.views.index:e=%s" % e)
     return render_to_response(template_name, context, context_instance=RequestContext(request))
@@ -53,17 +56,19 @@ def contact(request, template_name='regalness/contact-form.html'):
     context = {}
     try:
         if request.method == 'POST':
-            print request.POST
+            print 'post contact form'
             form = ContactForm(request.POST)
             if form.is_valid():
+                print 'contact form is valid'
                 obj = form.save()
-                print obj.is_default
+                obj.is_default = True #make all contacts default for now
                 customer = request.session[CUST_KEY]
                 customer.add_contact(obj)
                 request.session[CONTACT_FORM_KEY] = obj
                 vals = ''
                 return HttpResponse(json.dumps(vals), mimetype='application/json', status=200)
             else:
+                print 'contact form errors'
                 errors = fix_error_msg(form.errors)
                 err_msg = '  '.join(errors)
                 return HttpResponse(err_msg, mimetype='application/json', status=400)
@@ -72,12 +77,17 @@ def contact(request, template_name='regalness/contact-form.html'):
             try:
                 obj = request.session[CONTACT_FORM_KEY]
                 form = ContactForm(instance=obj)
+                print 'CONTACT: finding'
             except KeyError:
+                print 'CONTACT: keyerror'
                 customer = request.session[CUST_KEY]
                 def_contact = customer.get_default_contact()
+                print 'CONTACT: looking at customer %s' % customer.user.username
                 if customer.user.username != 'anon' and def_contact != None:
                     form = ContactForm(instance=def_contact)
+                    print 'CONTACT: found def contact'
                 else:
+                    print 'CONTACT: creating new contact form'
                     form = ContactForm()
             context['form'] = form
     except Exception as e:
@@ -105,12 +115,16 @@ def order_details(request, template_name='regalness/order-details-form.html'):
             try:
                 obj =request.session[ADDR_FORM_KEY]
                 form = AddressForm(instance=obj)
+                print 'ORDER: foudn addr form in sesh'
             except KeyError:
                 customer = request.session[CUST_KEY]
                 addr = customer.get_default_address()
+                print 'ORDER: looking up customer %s' % customer.user.username
                 if customer.user.username != 'anon' and addr != None:
                     form = AddressForm(instance=addr)
+                    print 'ORDER: found a def addr'
                 else:
+                    print 'ORDER: creating a new addr'
                     form = AddressForm()
             context['form'] = form
     except Exception as e:
@@ -185,42 +199,14 @@ def review(request, template_name='regalness/review-order.html'):
         logging.error("regalness.views.review:e=%s" % e)
     return render_to_response(template_name, context, context_instance=RequestContext(request))
 
-def customer_check(user, token):
-    #TODO lookup cust in our db
-    try:
-        customer = stripe.Customer.create(
-            card=token,
-            description="payinguser@example.com"
-        )
-    except Exception as e:
-        print 'customer e=%s' % e
-    return customer.id
-
-def charge_customer(cust_id):
-    try:
-        charge = stripe.Charge.create(
-            amount=1000, # amount in cents, again
-            currency="usd",
-            description="payinguser@example.com",
-            customer=cust_id,
-        )
-    except Exception as e:
-        print 'charge e=%s' % e
-        return False
-    return True
-
 def order_submit(request, option, quantity, token, template_name='regalness/thanks.html'):
     context = {}
     try:
-        print request.session['customer']
-        if option not in ORDER_OPTIONS:
-            template_name = 'regalness/error_missing_opt.html'
-            return render_to_response(template_name, context, context_instance=RequestContext(request))
-        stripe.api_key = settings.TEST_STRIPE_SECRET_KEY
-        # create the charge on Stripe's servers - this will charge the user's card
-        cust_id = customer_check('RMME', token)
-        if not charge_customer(cust_id):
-            template_name = PROCESSING_ERROR_TEMPLATE
+        customer = request.session[CUST_KEY]
+        print 'order customer %s' % customer.user.username
+        #todo need to catch errors here and percolate error message
+        #todo need to handle multiple credit cards?
+        customer.charge(option, quantity, token, request)
     except Exception as e:
         logging.error("regalness.views.order_submit:e=%s" % e)
     return render_to_response(template_name, context, context_instance=RequestContext(request))

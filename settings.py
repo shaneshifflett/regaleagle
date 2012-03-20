@@ -34,6 +34,8 @@ DATABASES = {
 # system time zone.
 TIME_ZONE = 'America/Chicago'
 
+SESSION_EXPIRE_AT_BROWSER_CLOSE=True
+
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = 'en-us'
@@ -145,12 +147,13 @@ LOGGING = {
     'loggers': {
         'django.request': {
             'handlers': ['mail_admins'],
-            'level': 'ERROR',
+            'level': 'INFO',
             'propagate': True,
         },
     }
 }
-
+STRIPE_SECRET_KEY = ''
+STRIPE_PUB_KEY = ''
 TEST_STRIPE_SECRET_KEY = 'MqRecZvxkT5nB7Fv8JqPRVazyLXjBtxj'
 TEST_STRIPE_PUB_KEY = 'pk_AeAFtjGQy7aC0Urf7KUCnvbVMCa1n'
 TEST_CARD_NUM = '4242424242424242'

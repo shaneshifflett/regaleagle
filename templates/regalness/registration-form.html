@@ -1,5 +1,24 @@
-  <form id='registration-form'>
+<form id='registration-form'>
     {% csrf_token %}
-    {{ form.as_table }}
+    <table>
+        <tr>
+            <td><label for="id_username">Username:</label></td>
+            <td>{{form.username}}<br>
+                <span class="helptext">Required. 30 characters or fewer. Letters, digits and @/./+/-/_ only.</span>
+            </td>
+        <tr>
+            <td><label for="id_password1">Password:</label></td>
+            <td>
+                {{form.password1}}
+            </td>
+        </tr>
+        <tr>
+            <td><label for="id_password2">Password confirmation:</label></td>
+            <td>
+                {{form.password2}}
+                <br><span class="helptext">Enter the same password as above, for verification.</span>
+            </td>
+        </tr>
+    </table>
     <input type="submit" value="Create the account" />
-  </label>
+</form>

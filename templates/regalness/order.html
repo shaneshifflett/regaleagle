@@ -60,6 +60,8 @@
         $('#create-act').unbind('click', showRegister).bind('click', showRegister);
         $('#options-form .nextbtn').unbind('click', optionNext).bind('click', optionNext);
         $('#quantity-form .nextbtn').unbind('click', quantityNext).bind('click', quantityNext);
+        $('#options-form input[type=radio]:checked').removeAttr("checked");
+        $('.submit-button').removeAttr("disabled");
 
         option = '';
         quantity = 0;
@@ -210,6 +212,7 @@
         }
 
         function optionNext(){
+            option = $('#options-form input[type=radio]:checked').val();
             var dirtxt = '';
             if(option == "{{bulk}}"){
                dirtxt = "Enter the number of cookies you'd like";
@@ -222,6 +225,7 @@
             return false;
         }
         function quantityNext(){
+            quantity = $("#quantity-form input").val();
             $("#quantity-form").hide("slide", {direction: "left"}, slideTime);
             if(option != "{{bulk}}"){
                 $.get('/login/', function(data){
@@ -241,7 +245,6 @@
         }
         $("#options-form :radio").change(function() {
              option = $('#options-form input[type=radio]:checked').val();
-
              return false;
         });
         $("#quantity-form input").change(function() {

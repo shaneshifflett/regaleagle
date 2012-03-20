@@ -1,5 +1,14 @@
-  <form id='login-form'>
+<form id='login-form'>
     {% csrf_token %}
-    {{ form.as_table }}
+    <table>
+        <tr>
+            <td><label for="id_username">Username:</label></td>
+            <td>{{form.username}}</td>
+        </tr>
+        <tr>
+            <td><label for="id_password">Password:</label></td>
+            <td>{{form.password}}</td>
+        </tr>
+    </table>
     <input type="submit" value="Login" />
-  </label>
+</form>
