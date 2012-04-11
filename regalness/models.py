@@ -19,13 +19,19 @@ CONTACT_FORM_KEY = 'contact'
 def calculate_amt(quantity):
     return int(((COST_PER_COOKIE * float(quantity)) + SHIPPING_COST) * 100)
 
+def calculate_shipping_amt(quantity):
+    return int(((SUBSCRIPTION_PRICE * float(quantity))) * 100)
+
 def get_stripe():
-    if settings.DEBUG:
-        stripe.api_key = settings.TEST_STRIPE_SECRET_KEY
-    else:
-        stripe.api_key = settings.STRIPE_SECRET_KEY
-    logging.error("regalness.models.get_stripe:settings.DEBUG=%s api_key" % (settings.DEBUG, stripe.api_key))
-    return stripe
+    try:
+        if settings.DEBUG:
+            stripe.api_key = settings.TEST_STRIPE_SECRET_KEY
+        else:
+            stripe.api_key = settings.STRIPE_SECRET_KEY
+        logging.info("regalness.models.get_stripe:settings.DEBUG=%s api_key=%s" % (settings.DEBUG, stripe.api_key))
+        return stripe
+    except Exception as e:
+        print 'regalness.models.get_strip:e=%s' % (e)
 
 class Customer(models.Model):
     user = models.ForeignKey(User)
@@ -46,7 +52,7 @@ class Customer(models.Model):
                 )
                 self.stripe_customer_id = stripe_customer.id
                 self.save()
-                return self.stripe_customer_id
+                return stripe_customer
             except Exception as e:
                 logging.error("regalness.models.Customer.get_stripe_customer:e=%s" % e)
                 return None
@@ -54,16 +60,19 @@ class Customer(models.Model):
             return get_stripe().Customer.retrieve(self.stripe_customer_id)
 
     def get_active_orders(self):
-        return self.orders.filter(is_active=True)
+        return self.orders.filter(active=True)
 
     def cancel_subscription(self, stripe_customer):
         try:
-            stripe_customer.cancel_subscription()#cancel any existing subscription
-            active_orders = self.get_active_orders()
-            for order in active_orders:
-                order.is_active = False
-                order.save()
-            return True
+            if stripe_customer.subscription != None:
+                stripe_customer.cancel_subscription()#cancel any existing subscription
+                active_orders = self.get_active_orders()
+                for order in active_orders:
+                    order.active = False
+                    order.save()
+                return True
+            else:
+                return False
         except Exception as e:
             logging.error("regalness.models.Customer.cancel_subscription:username=%s error updating subscription e=%s"\
              % (self.user.username, e))
@@ -74,7 +83,7 @@ class Customer(models.Model):
             return True
         except Exception as e:
             logging.error("regalness.models.Customer.update_subscription:\
-                plan_id=%s username=%s error updating subscription e=%s" % (plan_id, e))
+                plan_id=%s user_email=%s error updating subscription e=%s" % (plan_id, stripe_customer.email, e))
             return False
 
     def charge_recurring(self, quantity, token, request):
@@ -90,7 +99,7 @@ class Customer(models.Model):
                     #or given them teh option to cancel
                     self.cancel_subscription(scustomer)
                     self.update_subscription(scustomer, plan.plan_id)
-                    order = Order(order_type[1][1], quantity=quantity,\
+                    order = Order(order_type=ORDER_OPTIONS[1][1], quantity=quantity,\
                         delivery_address=addr, contact=contact, total_cost=plan.amount,\
                         stripe_plan=plan)
                     order.save()
@@ -109,13 +118,13 @@ class Customer(models.Model):
             addr = request.session[ADDR_FORM_KEY]
             contact = request.session[CONTACT_FORM_KEY]
             description = '%s buying %s cookies' % (contact.email, quantity)
-            logging.error("regalness.models.charge_once:cost=%s, email=%s quantity=%s, token=%s, description=%s" %\
+            logging.info("regalness.models.charge_once:cost=%s, email=%s quantity=%s, token=%s, description=%s" %\
                 (cost, contact.email, quantity, token, description))
-            charge = get_stripe().Charge.create(
+            charge = get_strip().Charge.create(
                 amount=cost, # amount in cents, again
                 currency="usd",
-                description=description,
-                card=token
+                description=str(description),
+                card=str(token)
             )
             order = Order(order_type=ORDER_OPTIONS[0][1], quantity=quantity,\
                 delivery_address=addr, contact=contact, total_cost=cost)
@@ -134,7 +143,6 @@ class Customer(models.Model):
         else:
             self.charge_recurring(quantity, token, request)
         return True
-
 
     def add_contact(self, contact):
         contactos = self.contacts.all()
@@ -212,8 +220,8 @@ class Order(models.Model):
     created_date = models.DateTimeField(auto_now=True) 
 
 INTERVAL = (
-        ('M', 'MONTH'),
-        ('Y', 'YEAR')
+        ('M', 'month'),
+        ('Y', 'year')
     )
 
 class StripePlan(models.Model):
@@ -228,16 +236,20 @@ class StripePlan(models.Model):
 def get_plan(quantity):
     id_str = 'cookie_sub_q_%s' % quantity
     try:
-        return StripPlan.objects.get(plan_id=id_str)
+        thisplan = StripPlan.objects.get(plan_id=id_str)
+        print thisplan
+        return thisplan
     except:
         try:
-            amount = SUBSCRIPTION_PRICE * quantity
+            amount = calculate_shipping_amt(quantity)
+            logging.info('regalness.models.get_plan:id_str=%s, amount=%s, interval=%s' %\
+                (id_str, amount, INTERVAL[0][1]))
             get_stripe().Plan.create(
-              amount=amount,
+              amount=str(amount),
               interval=INTERVAL[0][1],
-              name=plan.name,
-              currency=plan.currency,
-              id=plan.plan_id)
+              name=id_str,
+              currency='usd',
+              id=id_str)
             plan = StripePlan(amount=amount, currency='usd', plan_id=id_str,\
                 name=id_str, interval=INTERVAL[0][1], quantity=quantity)
             plan.save()
