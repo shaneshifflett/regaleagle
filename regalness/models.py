@@ -236,10 +236,10 @@ class StripePlan(models.Model):
 def get_plan(quantity):
     id_str = 'cookie_sub_q_%s' % quantity
     try:
-        thisplan = StripPlan.objects.get(plan_id=id_str)
-        print thisplan
+        thisplan = StripePlan.objects.get(plan_id=id_str)
         return thisplan
-    except:
+    except Exception as eone:
+        logging.error("regalness.models.get_plan: failed to fetch plan id_str=%s e=%s" % (id_str, eone))
         try:
             amount = calculate_shipping_amt(quantity)
             logging.info('regalness.models.get_plan:id_str=%s, amount=%s, interval=%s' %\
