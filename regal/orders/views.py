@@ -6,8 +6,8 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
 from django.forms.models import model_to_dict
 import logging
-from regalness.forms import *
-from regalness.models import *
+from regal.orders.forms import *
+from regal.orders.models import *
 import simplejson as json
 import stripe
 

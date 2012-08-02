@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.localflavor.us.forms import USPhoneNumberField, USZipCodeField
-from regalness.models import Address, Contact
+from regal.orders.models import Address, Contact
 
 
 class ContactForm(forms.ModelForm):

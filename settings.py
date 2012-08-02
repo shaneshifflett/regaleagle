@@ -1,11 +1,14 @@
 import os
+from os import environ
+
+env = lambda e, d: environ[e] if environ.has_key(e) else d
 
 def map_path(directory_name):
     return os.path.join(os.path.dirname(__file__), directory_name).replace('\\', '/')
 
 # Django settings for regalness project.
 
-DEBUG = True
+DEBUG = not bool(env('REGAL_SITE_PROD', ''))
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
@@ -16,9 +19,9 @@ MANAGERS = ADMINS
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+        'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
         'NAME': 'regaldb',                      # Or path to database file if using sqlite3.
-        'USER': 'root',                      # Not used with sqlite3.
+        'USER': 'postgres',                      # Not used with sqlite3.
         'PASSWORD': '',                  # Not used with sqlite3.
         'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
         'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
@@ -52,7 +55,7 @@ USE_L10N = True
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/home/media/media.lawrence.com/media/"
-MEDIA_ROOT = map_path('public')
+MEDIA_ROOT = map_path('regal/public')
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash.
@@ -63,7 +66,7 @@ MEDIA_URL = 'public'
 # Don't put anything in this directory yourself; store your static files
 # in apps' "static/" subdirectories and in STATICFILES_DIRS.
 # Example: "/home/media/media.lawrence.com/static/"
-STATIC_ROOT = map_path('public/static')
+STATIC_ROOT = map_path('regal/public/static')
 
 # URL prefix for static files.
 # Example: "http://media.lawrence.com/static/"
@@ -91,6 +94,7 @@ STATICFILES_FINDERS = (
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'x^ndlm9ezruoaricy$^fq&g-k$r06g1(@8e!k+_qk@gzg-*e#&'
+SECRET_KEY = env('REGAL_SECRET_KEY', '')
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
@@ -113,7 +117,7 @@ TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
-    map_path('templates'),
+    map_path('regal/templates'),
 )
 
 INSTALLED_APPS = (
@@ -127,7 +131,7 @@ INSTALLED_APPS = (
     # 'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
-    'regalness',
+    'regal.orders',
 )
 
 # A sample logging configuration. The only tangible logging
@@ -152,8 +156,8 @@ LOGGING = {
         },
     }
 }
-STRIPE_SECRET_KEY = ''
-STRIPE_PUB_KEY = ''
-TEST_STRIPE_SECRET_KEY = 'MqRecZvxkT5nB7Fv8JqPRVazyLXjBtxj'
-TEST_STRIPE_PUB_KEY = 'pk_AeAFtjGQy7aC0Urf7KUCnvbVMCa1n'
+STRIPE_SECRET_KEY = env('REGAL_STRIPE_SECRET_KEY', '')
+STRIPE_PUB_KEY = env('REGAL_STRIPE_PUB_KEY', '')
+TEST_STRIPE_SECRET_KEY = env('REGAL_TEST_STRIPE_SECRET_KEY', '')#'MqRecZvxkT5nB7Fv8JqPRVazyLXjBtxj'
+TEST_STRIPE_PUB_KEY = env('REGAL_TEST_STRIPE_PUB_KEY', '')#'pk_AeAFtjGQy7aC0Urf7KUCnvbVMCa1n'
 TEST_CARD_NUM = '4242424242424242'

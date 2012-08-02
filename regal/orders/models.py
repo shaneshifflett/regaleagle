@@ -28,17 +28,17 @@ def get_stripe():
             stripe.api_key = settings.TEST_STRIPE_SECRET_KEY
         else:
             stripe.api_key = settings.STRIPE_SECRET_KEY
-        logging.info("regalness.models.get_stripe:settings.DEBUG=%s api_key=%s" % (settings.DEBUG, stripe.api_key))
+        logging.info("orders.models.get_stripe:settings.DEBUG=%s api_key=%s" % (settings.DEBUG, stripe.api_key))
         return stripe
     except Exception as e:
-        print 'regalness.models.get_strip:e=%s' % (e)
+        print 'orders.models.get_stripe:e=%s' % (e)
 
 class Customer(models.Model):
     user = models.ForeignKey(User)
     stripe_customer_id = models.CharField(max_length=255, blank=True)
-    orders = models.ManyToManyField('regalness.Order', symmetrical=False, null=True, blank=True)
-    addresses = models.ManyToManyField('regalness.Address', symmetrical=False, null=True, blank=True)
-    contacts = models.ManyToManyField('regalness.Contact', symmetrical=False, null=True, blank=True)
+    orders = models.ManyToManyField('orders.Order', symmetrical=False, null=True, blank=True)
+    addresses = models.ManyToManyField('orders.Address', symmetrical=False, null=True, blank=True)
+    contacts = models.ManyToManyField('orders.Contact', symmetrical=False, null=True, blank=True)
     created_date = models.DateTimeField(auto_now=True)
 
     def get_stripe_customer(self, token):
@@ -54,7 +54,7 @@ class Customer(models.Model):
                 self.save()
                 return stripe_customer
             except Exception as e:
-                logging.error("regalness.models.Customer.get_stripe_customer:e=%s" % e)
+                logging.error("orders.models.Customer.get_stripe_customer:e=%s" % e)
                 return None
         else:
             return get_stripe().Customer.retrieve(self.stripe_customer_id)
@@ -74,7 +74,7 @@ class Customer(models.Model):
             else:
                 return False
         except Exception as e:
-            logging.error("regalness.models.Customer.cancel_subscription:username=%s error updating subscription e=%s"\
+            logging.error("orders.models.Customer.cancel_subscription:username=%s error updating subscription e=%s"\
              % (self.user.username, e))
 
     def update_subscription(self, stripe_customer, plan_id):
@@ -82,7 +82,7 @@ class Customer(models.Model):
             stripe_customer.update_subscription(plan=plan_id, prorate=False)
             return True
         except Exception as e:
-            logging.error("regalness.models.Customer.update_subscription:\
+            logging.error("orders.models.Customer.update_subscription:\
                 plan_id=%s user_email=%s error updating subscription e=%s" % (plan_id, stripe_customer.email, e))
             return False
 
@@ -104,12 +104,12 @@ class Customer(models.Model):
                         stripe_plan=plan)
                     order.save()
                 except Exception as e:
-                    logging.error("regalness.models.Customer.charge_recurring:plan_id=%s username=%s error updating subscription e=%s"\
+                    logging.error("orders.models.Customer.charge_recurring:plan_id=%s username=%s error updating subscription e=%s"\
                      % (plan.plan_id, self.user.username, e))
             else:
-                logging.error("regalness.models.Customer.charge_recurring:user=%s attempting to subscribe but has None" % self.user.username)
+                logging.error("orders.models.Customer.charge_recurring:user=%s attempting to subscribe but has None" % self.user.username)
         except Exception as e:
-            logging.error("regalness.models.Customer.charge_recurring:e=%s" % e)
+            logging.error("orders.models.Customer.charge_recurring:e=%s" % e)
             return False
 
     def charge_once(self, quantity, token, request):
@@ -118,9 +118,9 @@ class Customer(models.Model):
             addr = request.session[ADDR_FORM_KEY]
             contact = request.session[CONTACT_FORM_KEY]
             description = '%s buying %s cookies' % (contact.email, quantity)
-            logging.info("regalness.models.charge_once:cost=%s, email=%s quantity=%s, token=%s, description=%s" %\
+            logging.info("orders.models.charge_once:cost=%s, email=%s quantity=%s, token=%s, description=%s" %\
                 (cost, contact.email, quantity, token, description))
-            charge = get_strip().Charge.create(
+            charge = get_stripe().Charge.create(
                 amount=cost, # amount in cents, again
                 currency="usd",
                 description=str(description),
@@ -132,11 +132,11 @@ class Customer(models.Model):
             self.orders.add(order)
             return True
         except Exception as e:
-            logging.error("regalness.models.Customer.charge_once:e=%s" % e)
+            logging.error("orders.models.Customer.charge_once:e=%s" % e)
             return False
 
     def charge(self, option, quantity, token, request):
-        logging.info("regalness.models.Customer.charge:option=%s, quantity=%s, token=%s username=%s" %\
+        logging.info("orders.models.Customer.charge:option=%s, quantity=%s, token=%s username=%s" %\
             (option, quantity, token, self.user.username))
         if option == ORDER_OPTIONS[0][1]:
             self.charge_once(quantity, token, request)
@@ -211,12 +211,12 @@ class Contact(models.Model):
 class Order(models.Model):
     order_type = models.CharField(max_length=10, choices=ORDER_OPTIONS)
     quantity = models.PositiveIntegerField()
-    delivery_address = models.ForeignKey('regalness.Address')
-    contact = models.ForeignKey('regalness.Contact')
+    delivery_address = models.ForeignKey('orders.Address')
+    contact = models.ForeignKey('orders.Contact')
     total_cost = models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)
     active = models.BooleanField(default=False)
     shipped = models.BooleanField(default=False)
-    stripe_plan = models.ForeignKey('regalness.StripePlan', null=True, blank=True)
+    stripe_plan = models.ForeignKey('orders.StripePlan', null=True, blank=True)
     created_date = models.DateTimeField(auto_now=True) 
 
 INTERVAL = (
@@ -239,10 +239,10 @@ def get_plan(quantity):
         thisplan = StripePlan.objects.get(plan_id=id_str)
         return thisplan
     except Exception as eone:
-        logging.error("regalness.models.get_plan: failed to fetch plan id_str=%s e=%s" % (id_str, eone))
+        logging.error("orders.models.get_plan: failed to fetch plan id_str=%s e=%s" % (id_str, eone))
         try:
             amount = calculate_shipping_amt(quantity)
-            logging.info('regalness.models.get_plan:id_str=%s, amount=%s, interval=%s' %\
+            logging.info('orders.models.get_plan:id_str=%s, amount=%s, interval=%s' %\
                 (id_str, amount, INTERVAL[0][1]))
             get_stripe().Plan.create(
               amount=str(amount),
@@ -255,7 +255,7 @@ def get_plan(quantity):
             plan.save()
             return plan
         except Exception as e:
-            logging.error("regalness.models.get_plan:id_str=%s error creating plane=%s" % (id_str, e))
+            logging.error("orders.models.get_plan:id_str=%s error creating plane=%s" % (id_str, e))
             return False
 
 def get_latest_plan():
