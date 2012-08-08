@@ -2,3 +2,4 @@ django
 stripe
 psycopg2 
 dj-database-url
+simplejson
